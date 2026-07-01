@@ -1,0 +1,42 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "uvt-events",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "compatibility_flags": ["nodejs_compat"],
+  "observability": { "enabled": true },
+
+  // Custom domain (zone must be active on this Cloudflare account). Wrangler
+  // provisions the DNS record + cert on deploy — no manual A record.
+  "routes": [{ "pattern": "api.uppervalleytech.org", "custom_domain": true }],
+
+  // D1: events + organizers. Create with `wrangler d1 create uvt-events`
+  // and paste the returned database_id here.
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "uvt-events",
+      "database_id": "16151293-5f77-4be2-9ecd-54b229c125ad",
+      "migrations_dir": "db/migrations",
+    },
+  ],
+
+  // KV: OAuth grant/session storage for workers-oauth-provider.
+  // Create with `wrangler kv namespace create OAUTH_KV` and paste the id.
+  "kv_namespaces": [
+    {
+      "binding": "OAUTH_KV",
+      "id": "d17f2b1b83874e3e833a8d26cc0a6e9f",
+    },
+  ],
+
+  "vars": {
+    // Origin allowed to read the events API (CORS hygiene; not abuse protection).
+    "ALLOWED_ORIGIN": "https://uppervalleytech.org",
+  },
+
+  // Secrets (set via `wrangler secret put`, never commit):
+  //   GOOGLE_CLIENT_ID
+  //   GOOGLE_CLIENT_SECRET
+  //   COOKIE_ENCRYPTION_KEY   (openssl rand -hex 32)
+}
