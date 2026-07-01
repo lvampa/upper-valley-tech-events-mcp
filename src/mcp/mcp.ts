@@ -19,6 +19,8 @@ import { EventRepository } from '@/events/event-repository.ts';
 import { OrganizerRepository } from '@/events/organizer-repository.ts';
 import { EventService } from '@/events/event-service.ts';
 import { OrganizerService } from '@/events/organizer-service.ts';
+import { isCalendarDate } from '@/events/date.ts';
+import { type DataResult, type OpResult } from '@/events/results.ts';
 
 const agendaItemSchema = z.object({
   time: z.string(),
@@ -27,11 +29,12 @@ const agendaItemSchema = z.object({
   open: z.boolean().optional(),
 });
 
-// A YYYY-MM-DD string that is also a real calendar date (rejects e.g. 2025-13-45).
+// A YYYY-MM-DD string that is also a real calendar date. isCalendarDate rejects
+// impossible days like 2025-02-30, which Date.parse would silently roll over.
 const isoDate = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, 'date must be YYYY-MM-DD')
-  .refine((d) => !Number.isNaN(Date.parse(d)), 'date is not a real calendar date');
+  .refine(isCalendarDate, 'date is not a real calendar date');
 
 // MCP tool result helpers.
 function ok(text: string) {
@@ -39,6 +42,16 @@ function ok(text: string) {
 }
 function fail(text: string) {
   return { content: [{ type: 'text' as const, text }], isError: true };
+}
+
+/**
+ * Map a service result to an MCP response: JSON data or a message on success,
+ * the error text on failure. Pass `cache` for write tools to purge /events first.
+ */
+async function respond(r: OpResult | DataResult<unknown>, cache?: EventsCache) {
+  if (!r.ok) return fail(r.error);
+  if (cache) await cache.purge();
+  return 'data' in r ? ok(JSON.stringify(r.data, null, 2)) : ok(r.message);
 }
 
 /** The caller's verified email from the OAuth props, or null if absent. */
@@ -60,10 +73,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
   server.registerTool(
     'list_events',
     { description: 'List all events including cancelled ones, for an organizer to inspect.' },
-    async () => {
-      const r = await events.listEvents(callerEmail());
-      return r.ok ? ok(JSON.stringify(r.data, null, 2)) : fail(r.error);
-    },
+    async () => respond(await events.listEvents(callerEmail())),
   );
 
   server.registerTool(
@@ -73,6 +83,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
       inputSchema: {
         id: z
           .string()
+          .min(1)
           .optional()
           .describe('URL slug, e.g. "jul-2025". Derived from date if omitted.'),
         date: isoDate,
@@ -85,11 +96,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
         attendees: z.string().optional(),
       },
     },
-    async (input) => {
-      const r = await events.addEvent(callerEmail(), input);
-      if (r.ok) await cache.purge();
-      return r.ok ? ok(r.message) : fail(r.error);
-    },
+    async (input) => respond(await events.addEvent(callerEmail(), input), cache),
   );
 
   server.registerTool(
@@ -109,11 +116,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
         status: z.enum(['scheduled', 'cancelled']).optional(),
       },
     },
-    async (input) => {
-      const r = await events.updateEvent(callerEmail(), input);
-      if (r.ok) await cache.purge();
-      return r.ok ? ok(r.message) : fail(r.error);
-    },
+    async (input) => respond(await events.updateEvent(callerEmail(), input), cache),
   );
 
   server.registerTool(
@@ -122,11 +125,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
       description: 'Mark an event as cancelled by id.',
       inputSchema: { id: z.string() },
     },
-    async ({ id }) => {
-      const r = await events.cancelEvent(callerEmail(), id);
-      if (r.ok) await cache.purge();
-      return r.ok ? ok(r.message) : fail(r.error);
-    },
+    async ({ id }) => respond(await events.cancelEvent(callerEmail(), id), cache),
   );
 
   server.registerTool(
@@ -135,10 +134,7 @@ function createServer(env: Env, requestUrl: string): McpServer {
       description: 'Add an email to the organizers allowlist (organizer-only).',
       inputSchema: { email: z.email() },
     },
-    async ({ email }) => {
-      const r = await organizerService.addOrganizer(callerEmail(), email);
-      return r.ok ? ok(r.message) : fail(r.error);
-    },
+    async ({ email }) => respond(await organizerService.addOrganizer(callerEmail(), email)),
   );
 
   return server;

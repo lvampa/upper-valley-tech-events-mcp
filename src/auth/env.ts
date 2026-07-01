@@ -13,7 +13,6 @@ const configSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().min(1),
   GOOGLE_CLIENT_SECRET: z.string().min(1),
   COOKIE_ENCRYPTION_KEY: z.string().min(1),
-  ALLOWED_ORIGIN: z.url().optional(),
 });
 
 export type Config = z.infer<typeof configSchema>;

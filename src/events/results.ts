@@ -10,17 +10,7 @@ export type OpResult = { ok: true; message: string } | { ok: false; error: strin
 export type DataResult<T> = { ok: true; data: T } | { ok: false; error: string };
 
 /** Input to {@link EventService.addEvent}; id is optional (derived from date). */
-export interface AddEventInput {
-  id?: string;
-  date: string;
-  title: string;
-  location: string;
-  time: string;
-  rsvpHref?: string;
-  meta?: string[];
-  agenda?: NewEvent['agenda'];
-  attendees?: string;
-}
+export type AddEventInput = Omit<NewEvent, 'id'> & { id?: string };
 
 /** Input to {@link EventService.updateEvent}; id selects the row to patch. */
 export type UpdateEventInput = { id: string } & EventPatch;

@@ -130,8 +130,8 @@ app.post('/authorize', async (c) => {
     if (error instanceof OAuthError) {
       return error.toResponse();
     }
-    const message = error instanceof Error ? error.message : 'unknown error';
-    return c.text(`Internal server error: ${message}`, 500);
+    console.error('POST /authorize failed:', error);
+    return c.text('Internal server error', 500);
   }
 });
 
@@ -195,7 +195,7 @@ app.get('/callback', async (c) => {
     sub?: string;
   }>();
 
-  if (!user.email || user.email_verified === false) {
+  if (!user.email || user.email_verified !== true) {
     return c.text('Google account has no verified email', 403);
   }
 

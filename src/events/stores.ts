@@ -36,10 +36,8 @@ export interface EventStore {
   listPublished(): Promise<EventRecord[]>;
   /** Every event including cancelled ones, newest first (organizer view). */
   listAll(): Promise<(EventRecord & { status: string })[]>;
-  /** True if an event with this id already exists. */
-  exists(id: string): Promise<boolean>;
-  /** Insert a new (scheduled) event. */
-  add(event: NewEvent): Promise<void>;
+  /** Insert a new (scheduled) event. Returns false if the id already exists. */
+  add(event: NewEvent): Promise<boolean>;
   /** Patch the provided fields of an event. Returns false if no such event. */
   update(id: string, patch: EventPatch): Promise<boolean>;
 }

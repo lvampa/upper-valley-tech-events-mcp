@@ -53,6 +53,12 @@ describe('the authorization gate', () => {
       const all = await eventRepo.listAll();
       expect(all.map((e) => e.id)).toEqual(['jul-2025']);
     });
+    it('treats an empty-string id as omitted (derives the slug)', async () => {
+      const r = await events.addEvent(ORGANIZER, { ...validEvent, id: '' });
+      expect(r.ok).toBe(true);
+      const all = await eventRepo.listAll();
+      expect(all.map((e) => e.id)).toEqual(['jul-2025']);
+    });
     it('rejects a duplicate id', async () => {
       await events.addEvent(ORGANIZER, { ...validEvent, id: 'dup' });
       const r = await events.addEvent(ORGANIZER, { ...validEvent, id: 'dup' });

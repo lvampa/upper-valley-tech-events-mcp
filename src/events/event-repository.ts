@@ -32,16 +32,12 @@ export class EventRepository extends BaseRepository implements EventStore {
     return results.map((row) => ({ ...this.rowToEvent(row), status: row.status }));
   }
 
-  async exists(id: string): Promise<boolean> {
-    const row = await this.db.prepare('SELECT 1 FROM events WHERE id = ?').bind(id).first();
-    return row !== null;
-  }
-
-  async add(e: NewEvent): Promise<void> {
-    await this.db
+  async add(e: NewEvent): Promise<boolean> {
+    const result = await this.db
       .prepare(
         `INSERT INTO events (id, date, title, location, time, rsvp_href, meta, agenda, attendees, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')`,
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')
+         ON CONFLICT(id) DO NOTHING`,
       )
       .bind(
         e.id,
@@ -55,6 +51,7 @@ export class EventRepository extends BaseRepository implements EventStore {
         e.attendees ?? null,
       )
       .run();
+    return result.meta.changes > 0;
   }
 
   async update(id: string, patch: EventPatch): Promise<boolean> {
@@ -78,7 +75,9 @@ export class EventRepository extends BaseRepository implements EventStore {
     if (patch.attendees !== undefined) push('attendees', patch.attendees);
     if (patch.status !== undefined) push('status', patch.status);
 
-    if (sets.length === 0) return this.exists(id);
+    // Empty-patch policy lives in EventService.updateEvent; the repo never
+    // emits `UPDATE ... SET  WHERE` and reports "nothing updated".
+    if (sets.length === 0) return false;
 
     sets.push("updated_at = datetime('now')");
 

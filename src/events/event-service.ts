@@ -1,20 +1,13 @@
 import { type EventRecord } from '@/types.ts';
 import { OrganizerGatedService } from './gated-service.ts';
-import { type EventStore, type OrganizerStore, type NewEvent } from './stores.ts';
+import { type EventStore, type OrganizerStore } from './stores.ts';
 import {
   type AddEventInput,
   type DataResult,
   type OpResult,
   type UpdateEventInput,
 } from './results.ts';
-
-const MONTHS = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
-
-/** Derive a slug like "jul-2025" from a YYYY-MM-DD date. */
-export function slugFromDate(date: string): string {
-  const [year, month] = date.split('-');
-  return `${MONTHS[Number(month) - 1] ?? month}-${year}`;
-}
+import { slugFromDate } from './date.ts';
 
 /** Organizer-gated event management: list / create / patch / cancel. */
 export class EventService extends OrganizerGatedService {
@@ -37,25 +30,16 @@ export class EventService extends OrganizerGatedService {
 
   addEvent(email: string | null, input: AddEventInput): Promise<OpResult> {
     return this.gate(email, async (): Promise<OpResult> => {
-      const id = input.id ?? slugFromDate(input.date);
-      if (await this.events.exists(id)) {
+      const id = input.id || slugFromDate(input.date);
+      // Atomic insert-or-nothing: `created` is false when the id already exists,
+      // which also closes the check-then-act race two concurrent adds would hit.
+      const created = await this.events.add({ ...input, id });
+      if (!created) {
         return {
           ok: false,
           error: `An event with id "${id}" already exists. Use update_event instead.`,
         };
       }
-      const newEvent: NewEvent = {
-        id,
-        date: input.date,
-        title: input.title,
-        location: input.location,
-        time: input.time,
-        rsvpHref: input.rsvpHref,
-        meta: input.meta,
-        agenda: input.agenda,
-        attendees: input.attendees,
-      };
-      await this.events.add(newEvent);
       return { ok: true, message: `Created event "${id}".` };
     });
   }
