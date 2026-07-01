@@ -3,6 +3,9 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
   "scripts": {
     "dev": "wrangler dev --port 8799",
     "deploy": "./scripts/deploy.sh",
@@ -18,21 +21,21 @@
     "db:migrate:remote": "wrangler d1 migrations apply uvt-events --remote"
   },
   "devDependencies": {
-    "@cloudflare/vitest-pool-workers": "^0.16.19",
-    "@cloudflare/workers-types": "^4.20250601.0",
+    "@cloudflare/vitest-pool-workers": "^0.17.0",
+    "@cloudflare/workers-types": "^4.20260701.1",
     "@eslint/js": "^10.0.1",
     "eslint": "^10.6.0",
     "eslint-config-prettier": "^10.1.8",
     "prettier": "^3.9.4",
-    "typescript": "~5.9.3",
+    "typescript": "^6.0.3",
     "typescript-eslint": "^8.62.1",
     "vitest": "^4.1.9",
-    "wrangler": "^4.20.0"
+    "wrangler": "^4.106.0"
   },
   "dependencies": {
     "@cloudflare/workers-oauth-provider": "^0.8.1",
     "@modelcontextprotocol/sdk": "^1.29.0",
-    "agents": "^0.16.2",
+    "agents": "^0.17.3",
     "hono": "^4.12.27",
     "zod": "^4.4.3"
   }
