@@ -98,6 +98,48 @@ describe('the authorization gate', () => {
       expect(r.ok).toBe(true);
       expect(await organizerRepo.isOrganizer('newperson@example.com')).toBe(true);
     });
+    it('removes another organizer, matching email case-insensitively', async () => {
+      await seedOrganizer(env, 'other@example.com');
+      const r = await organizerService.removeOrganizer(ORGANIZER, 'Other@Example.com');
+      expect(r.ok).toBe(true);
+      expect(await organizerRepo.isOrganizer('other@example.com')).toBe(false);
+    });
+    it('reports not-found when removing an email that is not an organizer', async () => {
+      const r = await organizerService.removeOrganizer(ORGANIZER, STRANGER);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toContain(STRANGER);
+    });
+    it('refuses to remove the last organizer', async () => {
+      const r = await organizerService.removeOrganizer(ORGANIZER, ORGANIZER);
+      expect(r.ok).toBe(false);
+      if (!r.ok) expect(r.error).toContain('last organizer');
+      expect(await organizerRepo.isOrganizer(ORGANIZER)).toBe(true);
+    });
+  });
+
+  describe('list_organizers', () => {
+    it('lists every organizer with who added them, oldest first', async () => {
+      await organizerService.addOrganizer(ORGANIZER, 'second@example.com');
+      const r = await organizerService.listOrganizers(ORGANIZER);
+      expect(r.ok).toBe(true);
+      if (r.ok) {
+        expect(r.data.map((o) => [o.email, o.addedBy])).toEqual([
+          [ORGANIZER, 'test'],
+          ['second@example.com', ORGANIZER],
+        ]);
+      }
+    });
+    it('is denied for a stranger', async () => {
+      expect((await organizerService.listOrganizers(STRANGER)).ok).toBe(false);
+    });
+  });
+
+  describe('remove_organizer', () => {
+    it('is denied for a stranger and removes nothing', async () => {
+      const r = await organizerService.removeOrganizer(STRANGER, ORGANIZER);
+      expect(r.ok).toBe(false);
+      expect(await organizerRepo.isOrganizer(ORGANIZER)).toBe(true);
+    });
   });
 
   describe('list_events', () => {

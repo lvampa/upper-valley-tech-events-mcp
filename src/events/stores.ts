@@ -2,7 +2,7 @@
 // interfaces, not on the concrete D1 repositories, so they can be unit-tested
 // against fakes and the storage layer can change without touching business logic.
 
-import { type AgendaItem, type EventRecord } from '@/types.ts';
+import { type AgendaItem, type EventRecord, type OrganizerRecord } from '@/types.ts';
 
 /** Fields accepted when creating an event. meta/agenda are stored as JSON strings. */
 export interface NewEvent {
@@ -44,6 +44,10 @@ export interface EventStore {
 export interface OrganizerStore {
   /** True if the (case-insensitive) email is an organizer. */
   isOrganizer(email: string): Promise<boolean>;
+  /** Every organizer, oldest first. */
+  listAll(): Promise<OrganizerRecord[]>;
   /** Add an organizer to the allowlist (idempotent). */
   add(email: string, addedBy: string): Promise<void>;
+  /** Remove an organizer unless they are the last one. Returns false if nothing was removed. */
+  removeUnlessLast(email: string): Promise<boolean>;
 }

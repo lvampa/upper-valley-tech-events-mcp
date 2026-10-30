@@ -135,6 +135,22 @@ function createServer(env: Env, requestUrl: string): McpServer {
     async ({ email }) => respond(await organizerService.addOrganizer(callerEmail(), email)),
   );
 
+  server.registerTool(
+    'list_organizers',
+    { description: 'List every email on the organizers allowlist, with who added it and when.' },
+    async () => respond(await organizerService.listOrganizers(callerEmail())),
+  );
+
+  server.registerTool(
+    'remove_organizer',
+    {
+      description:
+        'Remove an email from the organizers allowlist (organizer-only). The last organizer cannot be removed.',
+      inputSchema: { email: z.email() },
+    },
+    async ({ email }) => respond(await organizerService.removeOrganizer(callerEmail(), email)),
+  );
+
   return server;
 }
 

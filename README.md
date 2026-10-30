@@ -24,13 +24,15 @@ Writes are layered **MCP tool → service → repository → D1**:
 
 ### MCP tools
 
-| Tool            | Purpose                                            |
-| --------------- | -------------------------------------------------- |
-| `list_events`   | List all events incl. cancelled.                   |
-| `add_event`     | Create an event (id derived from date if omitted). |
-| `update_event`  | Patch fields of an event by id.                    |
-| `cancel_event`  | Set `status = 'cancelled'` by id.                  |
-| `add_organizer` | Add an email to the `organizers` allowlist.        |
+| Tool               | Purpose                                            |
+| ------------------ | -------------------------------------------------- |
+| `list_events`      | List all events incl. cancelled.                   |
+| `add_event`        | Create an event (id derived from date if omitted). |
+| `update_event`     | Patch fields of an event by id.                    |
+| `cancel_event`     | Set `status = 'cancelled'` by id.                  |
+| `add_organizer`    | Add an email to the `organizers` allowlist.        |
+| `list_organizers`  | List the allowlist with who added each email.      |
+| `remove_organizer` | Remove an email; refuses to remove the last one.   |
 
 ## Local development
 

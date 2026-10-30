@@ -19,6 +19,12 @@ export interface EventRecord {
   agenda?: AgendaItem[];
 }
 
+export interface OrganizerRecord {
+  email: string;
+  addedBy: string | null;
+  addedAt: string;
+}
+
 export interface Env {
   DB: D1Database;
   OAUTH_KV: KVNamespace;
