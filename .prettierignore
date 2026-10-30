@@ -1,3 +1,4 @@
 .wrangler
 dist
 package-lock.json
+.claude/

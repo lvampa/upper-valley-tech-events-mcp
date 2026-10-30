@@ -16,6 +16,7 @@ import {
   addApprovedClient,
   bindStateToSession,
   createOAuthState,
+  decodeState,
   generateCSRFProtection,
   isClientApproved,
   OAuthError,
@@ -38,6 +39,14 @@ export interface Props extends Record<string, unknown> {
 type Bindings = Env & { OAUTH_PROVIDER: OAuthHelpers };
 
 const app = new Hono<{ Bindings: Bindings }>();
+
+app.onError((error) => {
+  if (error instanceof OAuthError) {
+    return error.toResponse();
+  }
+  console.error('OAuth handler failed:', error);
+  return new Response('Internal server error', { status: 500 });
+});
 
 function redirectToGoogle(
   request: Request,
@@ -89,68 +98,50 @@ app.get('/authorize', async (c) => {
 });
 
 app.post('/authorize', async (c) => {
-  try {
-    const { GOOGLE_CLIENT_ID: googleClientId, COOKIE_ENCRYPTION_KEY: cookieKey } = parseConfig(
-      c.env,
-    );
-    const formData = await c.req.raw.formData();
+  const { GOOGLE_CLIENT_ID: googleClientId, COOKIE_ENCRYPTION_KEY: cookieKey } = parseConfig(c.env);
+  const formData = await c.req.raw.formData();
 
-    validateCSRFToken(formData, c.req.raw);
+  validateCSRFToken(formData, c.req.raw);
 
-    const encodedState = formData.get('state');
-    if (!encodedState || typeof encodedState !== 'string') {
-      return c.text('Missing state in form data', 400);
-    }
-
-    let state: { oauthReqInfo?: AuthRequest };
-    try {
-      state = JSON.parse(atob(encodedState)) as { oauthReqInfo?: AuthRequest };
-    } catch {
-      return c.text('Invalid state data', 400);
-    }
-
-    if (!state.oauthReqInfo?.clientId) {
-      return c.text('Invalid request', 400);
-    }
-
-    const approvedClientCookie = await addApprovedClient(
-      c.req.raw,
-      state.oauthReqInfo.clientId,
-      cookieKey,
-    );
-    const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.OAUTH_KV);
-    const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
-
-    const headers = new Headers();
-    headers.append('Set-Cookie', approvedClientCookie);
-    headers.append('Set-Cookie', sessionBindingCookie);
-
-    return redirectToGoogle(c.req.raw, googleClientId, stateToken, Object.fromEntries(headers));
-  } catch (error) {
-    if (error instanceof OAuthError) {
-      return error.toResponse();
-    }
-    console.error('POST /authorize failed:', error);
-    return c.text('Internal server error', 500);
+  const encodedState = formData.get('state');
+  if (!encodedState || typeof encodedState !== 'string') {
+    return c.text('Missing state in form data', 400);
   }
+
+  let state: { oauthReqInfo?: AuthRequest };
+  try {
+    state = decodeState(encodedState) as { oauthReqInfo?: AuthRequest };
+  } catch {
+    return c.text('Invalid state data', 400);
+  }
+
+  if (!state.oauthReqInfo?.clientId) {
+    return c.text('Invalid request', 400);
+  }
+
+  const approvedClientCookie = await addApprovedClient(
+    c.req.raw,
+    state.oauthReqInfo.clientId,
+    cookieKey,
+  );
+  const { stateToken } = await createOAuthState(state.oauthReqInfo, c.env.OAUTH_KV);
+  const { setCookie: sessionBindingCookie } = await bindStateToSession(stateToken);
+
+  const headers = new Headers();
+  headers.append('Set-Cookie', approvedClientCookie);
+  headers.append('Set-Cookie', sessionBindingCookie);
+
+  return redirectToGoogle(c.req.raw, googleClientId, stateToken, Object.fromEntries(headers));
 });
 
 app.get('/callback', async (c) => {
   const { GOOGLE_CLIENT_ID: googleClientId, GOOGLE_CLIENT_SECRET: googleClientSecret } =
     parseConfig(c.env);
 
-  let oauthReqInfo: AuthRequest;
-  let clearSessionCookie: string;
-  try {
-    const result = await validateOAuthState(c.req.raw, c.env.OAUTH_KV);
-    oauthReqInfo = result.oauthReqInfo;
-    clearSessionCookie = result.clearCookie;
-  } catch (error) {
-    if (error instanceof OAuthError) {
-      return error.toResponse();
-    }
-    return c.text('Internal server error', 500);
-  }
+  const { oauthReqInfo, clearCookie: clearSessionCookie } = await validateOAuthState(
+    c.req.raw,
+    c.env.OAUTH_KV,
+  );
 
   if (!oauthReqInfo.clientId) {
     return c.text('Invalid OAuth request data', 400);

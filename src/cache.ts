@@ -20,7 +20,11 @@ export class EventsCache {
     await caches.default.put(this.key(), response);
   }
 
-  /** Drop the cached response after a write so the site refreshes promptly. */
+  /**
+   * Drop the cached response after a write. The Cache API is per data center,
+   * so this only clears the location that served the write; elsewhere the old
+   * payload lives until its TTL expires.
+   */
   async purge(): Promise<void> {
     await caches.default.delete(this.key());
   }

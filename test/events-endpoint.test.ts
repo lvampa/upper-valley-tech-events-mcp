@@ -43,6 +43,22 @@ describe('GET /events', () => {
     expect(body.events[0].meta).toEqual(['Doors 6:30']);
     expect(body.events[0].agenda[0].time).toBe('7:05');
   });
+
+  it('given a database failure, returns a JSON 500 the site can still read', async () => {
+    // given
+    await env.DB.exec('DROP TABLE events');
+    // when
+    const res = await SELF.fetch('https://example.com/events');
+    // then
+    expect(res.status).toBe(500);
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(env.ALLOWED_ORIGIN);
+    expect(await res.json()).toEqual({ error: 'Failed to load events.' });
+  });
+
+  it('answers its own CORS preflight with the site origin', async () => {
+    const res = await SELF.fetch('https://example.com/events', { method: 'OPTIONS' });
+    expect(res.headers.get('Access-Control-Allow-Origin')).toBe(env.ALLOWED_ORIGIN);
+  });
 });
 
 describe('events schema', () => {

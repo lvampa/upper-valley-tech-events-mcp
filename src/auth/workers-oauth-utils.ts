@@ -54,6 +54,18 @@ export interface ValidateCSRFResult {
   clearCookie: string;
 }
 
+// btoa/atob only handle Latin-1, and the state carries client-supplied strings,
+// so go through UTF-8 bytes in both directions.
+export function encodeState(state: unknown): string {
+  const bytes = new TextEncoder().encode(JSON.stringify(state));
+  return btoa(String.fromCharCode(...bytes));
+}
+
+export function decodeState(encoded: string): unknown {
+  const bytes = Uint8Array.from(atob(encoded), (char) => char.charCodeAt(0));
+  return JSON.parse(new TextDecoder().decode(bytes));
+}
+
 export function sanitizeText(text: string): string {
   return text
     .replace(/&/g, '&amp;')
@@ -249,7 +261,7 @@ export interface ApprovalDialogOptions {
 export function renderApprovalDialog(request: Request, options: ApprovalDialogOptions): Response {
   const { client, server, state, csrfToken, setCookie } = options;
 
-  const encodedState = btoa(JSON.stringify(state));
+  const encodedState = encodeState(state);
 
   const serverName = sanitizeText(server.name);
   const clientName = client?.clientName ? sanitizeText(client.clientName) : 'Unknown MCP Client';
@@ -382,7 +394,12 @@ async function getApprovedClientsFromCookie(
   if (parts.length !== 2) return null;
 
   const [signatureHex, base64Payload] = parts;
-  const payload = atob(base64Payload);
+  let payload: string;
+  try {
+    payload = atob(base64Payload);
+  } catch {
+    return null;
+  }
 
   const isValid = await verifySignature(signatureHex, payload, cookieSecret);
   if (!isValid) return null;

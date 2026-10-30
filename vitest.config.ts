@@ -3,10 +3,10 @@ import { defineConfig } from 'vitest/config';
 import { fileURLToPath } from 'node:url';
 
 // Runs tests inside the Workers runtime with the bindings from wrangler.jsonc
-// (D1 "DB", KV "OAUTH_KV"). D1 is a local simulated database — the placeholder
-// database_id in wrangler.jsonc is fine; nothing touches real Cloudflare.
+// (D1 "DB", KV "OAUTH_KV"). D1 is a local simulated database — the database_id
+// in wrangler.jsonc is ignored here; nothing touches real Cloudflare.
 //
-// NOTE: this installed @cloudflare/vitest-pool-workers (0.16.x, vitest 4) ships
+// NOTE: this installed @cloudflare/vitest-pool-workers (0.17.x, vitest 4) ships
 // the `cloudflareTest()` Vite plugin rather than the older `defineWorkersConfig`
 // helper from the `/config` subpath (that subpath/export is absent here), so we
 // wire the pool via the plugin. The options are the same WorkersPoolOptions

@@ -6,7 +6,8 @@
 // user's email in props, and gates /mcp behind that token. Each tool reads the
 // caller's email from getMcpAuthContext() and delegates to a service; the
 // services enforce the organizer gate. After a successful write we purge the
-// cached /events response so the public site refreshes promptly.
+// cached /events response in the local data center; other locations refresh
+// when their copy's TTL expires.
 
 import OAuthProvider from '@cloudflare/workers-oauth-provider';
 import { createMcpHandler, getMcpAuthContext } from 'agents/mcp';
