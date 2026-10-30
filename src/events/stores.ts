@@ -14,7 +14,6 @@ export interface NewEvent {
   rsvpHref?: string;
   meta?: string[];
   agenda?: AgendaItem[];
-  attendees?: string;
 }
 
 /** Fields an update may patch. `id` selects the row and is not part of the patch. */
@@ -26,7 +25,6 @@ export interface EventPatch {
   rsvpHref?: string | null;
   meta?: string[] | null;
   agenda?: AgendaItem[] | null;
-  attendees?: string | null;
   status?: 'scheduled' | 'cancelled';
 }
 

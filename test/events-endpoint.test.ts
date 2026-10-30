@@ -44,3 +44,10 @@ describe('GET /events', () => {
     expect(body.events[0].agenda[0].time).toBe('7:05');
   });
 });
+
+describe('events schema', () => {
+  it('has no attendees column after migrations', async () => {
+    const { results } = await env.DB.prepare('PRAGMA table_info(events)').all<{ name: string }>();
+    expect(results.map((c) => c.name)).not.toContain('attendees');
+  });
+});

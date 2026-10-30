@@ -14,7 +14,6 @@ export class EventRepository extends BaseRepository implements EventStore {
       rsvpHref: row.rsvp_href ?? undefined,
       meta: this.parseJson(row.meta) as string[] | undefined,
       agenda: this.parseJson(row.agenda) as AgendaItem[] | undefined,
-      attendees: row.attendees ?? undefined,
     };
   }
 
@@ -35,8 +34,8 @@ export class EventRepository extends BaseRepository implements EventStore {
   async add(e: NewEvent): Promise<boolean> {
     const result = await this.db
       .prepare(
-        `INSERT INTO events (id, date, title, location, time, rsvp_href, meta, agenda, attendees, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')
+        `INSERT INTO events (id, date, title, location, time, rsvp_href, meta, agenda, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')
          ON CONFLICT(id) DO NOTHING`,
       )
       .bind(
@@ -48,7 +47,6 @@ export class EventRepository extends BaseRepository implements EventStore {
         e.rsvpHref ?? null,
         e.meta ? JSON.stringify(e.meta) : null,
         e.agenda ? JSON.stringify(e.agenda) : null,
-        e.attendees ?? null,
       )
       .run();
     return result.meta.changes > 0;
@@ -72,7 +70,6 @@ export class EventRepository extends BaseRepository implements EventStore {
       push('meta', patch.meta === null ? null : JSON.stringify(patch.meta));
     if (patch.agenda !== undefined)
       push('agenda', patch.agenda === null ? null : JSON.stringify(patch.agenda));
-    if (patch.attendees !== undefined) push('attendees', patch.attendees);
     if (patch.status !== undefined) push('status', patch.status);
 
     // Empty-patch policy lives in EventService.updateEvent; the repo never

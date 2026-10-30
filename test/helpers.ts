@@ -1,12 +1,16 @@
 import { type Env } from '@/types.ts';
 // Import the canonical migration DDL as a raw string so the test schema can't
 // drift from production. (Typed via ./sql.d.ts's `*.sql?raw` declaration.)
-import schema from '../db/migrations/0001_init.sql?raw';
+import init from '../db/migrations/0001_init.sql?raw';
+import dropAttendees from '../db/migrations/0002_drop_attendees.sql?raw';
+
+const migrations = [init, dropAttendees];
 
 export async function resetDb(env: Env): Promise<void> {
   await env.DB.exec('DROP TABLE IF EXISTS events');
   await env.DB.exec('DROP TABLE IF EXISTS organizers');
-  for (const stmt of schema
+  for (const stmt of migrations
+    .join(';')
     .split(';')
     .map((s) => s.trim())
     .filter(Boolean)) {
@@ -28,13 +32,12 @@ interface SeedEvent {
   time?: string;
   meta?: string[];
   agenda?: unknown[];
-  attendees?: string;
   status?: string;
 }
 export async function seedEvent(env: Env, e: SeedEvent): Promise<void> {
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO events (id, date, title, location, time, rsvp_href, meta, agenda, attendees, status)
-     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO events (id, date, title, location, time, rsvp_href, meta, agenda, status)
+     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
   )
     .bind(
       e.id,
@@ -44,7 +47,6 @@ export async function seedEvent(env: Env, e: SeedEvent): Promise<void> {
       e.time ?? '6:30 PM',
       e.meta ? JSON.stringify(e.meta) : null,
       e.agenda ? JSON.stringify(e.agenda) : null,
-      e.attendees ?? null,
       e.status ?? 'scheduled',
     )
     .run();

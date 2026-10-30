@@ -17,7 +17,6 @@ export interface EventRecord {
   rsvpHref?: string;
   meta?: string[];
   agenda?: AgendaItem[];
-  attendees?: string;
 }
 
 export interface Env {
@@ -39,6 +38,5 @@ export interface EventRow {
   rsvp_href: string | null;
   meta: string | null;
   agenda: string | null;
-  attendees: string | null;
   status: string;
 }
