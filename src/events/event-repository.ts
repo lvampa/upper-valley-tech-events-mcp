@@ -31,6 +31,14 @@ export class EventRepository extends BaseRepository implements EventStore {
     return results.map((row) => ({ ...this.rowToEvent(row), status: row.status }));
   }
 
+  async findById(id: string): Promise<(EventRecord & { status: string }) | null> {
+    const row = await this.db
+      .prepare('SELECT * FROM events WHERE id = ?')
+      .bind(id)
+      .first<EventRow>();
+    return row ? { ...this.rowToEvent(row), status: row.status } : null;
+  }
+
   async add(e: NewEvent): Promise<boolean> {
     const result = await this.db
       .prepare(

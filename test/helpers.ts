@@ -3,10 +3,14 @@ import { type Env } from '@/types.ts';
 // drift from production. (Typed via ./sql.d.ts's `*.sql?raw` declaration.)
 import init from '../db/migrations/0001_init.sql?raw';
 import dropAttendees from '../db/migrations/0002_drop_attendees.sql?raw';
+import subscribersRsvps from '../db/migrations/0003_subscribers_rsvps.sql?raw';
 
-const migrations = [init, dropAttendees];
+const migrations = [init, dropAttendees, subscribersRsvps];
 
 export async function resetDb(env: Env): Promise<void> {
+  // rsvps references events, so it has to go first.
+  await env.DB.exec('DROP TABLE IF EXISTS rsvps');
+  await env.DB.exec('DROP TABLE IF EXISTS subscribers');
   await env.DB.exec('DROP TABLE IF EXISTS events');
   await env.DB.exec('DROP TABLE IF EXISTS organizers');
   for (const stmt of migrations

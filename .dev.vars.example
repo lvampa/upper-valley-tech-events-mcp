@@ -1,0 +1,8 @@
+# Copy to .dev.vars for `npm run dev`. Wrangler stops reading .env once
+# .dev.vars exists, so every local dev variable has to live here.
+
+# hCaptcha's public test secret. It pairs with the test site key the site uses in dev.
+HCAPTCHA_SECRET=0x0000000000000000000000000000000000000000
+
+# The site's Vite dev server, so the browser accepts the worker's CORS replies.
+ALLOWED_ORIGIN=http://localhost:5173

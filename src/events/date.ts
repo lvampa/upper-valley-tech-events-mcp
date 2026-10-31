@@ -22,3 +22,12 @@ export function isCalendarDate(value: string): boolean {
   const dt = new Date(Date.UTC(year, month - 1, day));
   return dt.getUTCFullYear() === year && dt.getUTCMonth() === month - 1 && dt.getUTCDate() === day;
 }
+
+// Meetups are in New Hampshire, so "today" is the local date there, not UTC.
+const MEETUP_TIMEZONE = 'America/New_York';
+
+/** Today's date as YYYY-MM-DD in the meetup's time zone. */
+export function todayInMeetupTimezone(now: Date = new Date()): string {
+  // en-CA formats dates as YYYY-MM-DD.
+  return new Intl.DateTimeFormat('en-CA', { timeZone: MEETUP_TIMEZONE }).format(now);
+}

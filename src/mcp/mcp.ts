@@ -20,6 +20,8 @@ import { EventRepository } from '@/events/event-repository.ts';
 import { OrganizerRepository } from '@/events/organizer-repository.ts';
 import { EventService } from '@/events/event-service.ts';
 import { OrganizerService } from '@/events/organizer-service.ts';
+import { AudienceService } from '@/events/audience-service.ts';
+import { RsvpRepository, SubscriberRepository } from '@/events/audience-repository.ts';
 import { isCalendarDate } from '@/events/date.ts';
 import { type DataResult, type OpResult } from '@/events/results.ts';
 
@@ -67,8 +69,15 @@ function createServer(env: Env, requestUrl: string): McpServer {
   const server = new McpServer({ name: 'UVT Events', version: '1.0.0' });
 
   const organizers = new OrganizerRepository(env.DB);
-  const events = new EventService(organizers, new EventRepository(env.DB));
+  const eventRepo = new EventRepository(env.DB);
+  const events = new EventService(organizers, eventRepo);
   const organizerService = new OrganizerService(organizers);
+  const audience = new AudienceService(
+    organizers,
+    new SubscriberRepository(env.DB),
+    new RsvpRepository(env.DB),
+    eventRepo,
+  );
   const cache = new EventsCache(requestUrl);
 
   server.registerTool(
@@ -150,6 +159,34 @@ function createServer(env: Env, requestUrl: string): McpServer {
       inputSchema: { email: z.email() },
     },
     async ({ email }) => respond(await organizerService.removeOrganizer(callerEmail(), email)),
+  );
+
+  server.registerTool(
+    'list_subscribers',
+    {
+      description:
+        'List the mailing list: the count, then every email on one comma-separated line for Gmail Bcc.',
+    },
+    async () => respond(await audience.listSubscribers(callerEmail())),
+  );
+
+  server.registerTool(
+    'remove_subscriber',
+    {
+      description: 'Remove an email from the mailing list, e.g. when someone asks to unsubscribe.',
+      inputSchema: { email: z.email() },
+    },
+    async ({ email }) => respond(await audience.removeSubscriber(callerEmail(), email)),
+  );
+
+  server.registerTool(
+    'list_rsvps',
+    {
+      description:
+        'List RSVPs for an event: the count, then the emails on one comma-separated line.',
+      inputSchema: { eventId: z.string() },
+    },
+    async ({ eventId }) => respond(await audience.listRsvps(callerEmail(), eventId)),
   );
 
   return server;

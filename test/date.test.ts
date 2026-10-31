@@ -1,5 +1,15 @@
 import { describe, it, expect } from 'vitest';
-import { isCalendarDate, slugFromDate } from '@/events/date.ts';
+import { isCalendarDate, slugFromDate, todayInMeetupTimezone } from '@/events/date.ts';
+
+describe('todayInMeetupTimezone', () => {
+  it('uses New Hampshire time, so a late evening there is still the same day', () => {
+    // 02:30 UTC on Nov 19 is 9:30 PM on Nov 18 in New Hampshire.
+    expect(todayInMeetupTimezone(new Date('2026-11-19T02:30:00Z'))).toBe('2026-11-18');
+  });
+  it('rolls over at local midnight', () => {
+    expect(todayInMeetupTimezone(new Date('2026-11-19T05:00:00Z'))).toBe('2026-11-19');
+  });
+});
 
 describe('isCalendarDate', () => {
   it('accepts real calendar dates (incl. leap day)', () => {

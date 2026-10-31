@@ -32,6 +32,7 @@ export interface Env {
   GOOGLE_CLIENT_ID?: string;
   GOOGLE_CLIENT_SECRET?: string;
   COOKIE_ENCRYPTION_KEY?: string;
+  HCAPTCHA_SECRET?: string;
 }
 
 // Raw D1 row shape (snake_case, JSON columns as strings).

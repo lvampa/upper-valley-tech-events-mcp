@@ -3,6 +3,8 @@
 Cloudflare Worker backing the Upper Valley Tech meetup site.
 
 - `GET /events` — public JSON of scheduled events, edge-cached 5 min.
+- `POST /subscribe` — mailing-list signup from the site, hCaptcha-checked.
+- `POST /events/:id/rsvp` — RSVP to an upcoming event, hCaptcha-checked. The site still links out via `rsvpHref`.
 - `/mcp` — remote MCP server (Streamable HTTP), Google OAuth, organizer-only.
 
 ## Architecture
@@ -24,23 +26,45 @@ Writes are layered **MCP tool → service → repository → D1**:
 
 ### MCP tools
 
-| Tool               | Purpose                                            |
-| ------------------ | -------------------------------------------------- |
-| `list_events`      | List all events incl. cancelled.                   |
-| `add_event`        | Create an event (id derived from date if omitted). |
-| `update_event`     | Patch fields of an event by id.                    |
-| `cancel_event`     | Set `status = 'cancelled'` by id.                  |
-| `add_organizer`    | Add an email to the `organizers` allowlist.        |
-| `list_organizers`  | List the allowlist with who added each email.      |
-| `remove_organizer` | Remove an email; refuses to remove the last one.   |
+| Tool                | Purpose                                            |
+| ------------------- | -------------------------------------------------- |
+| `list_events`       | List all events incl. cancelled.                   |
+| `add_event`         | Create an event (id derived from date if omitted). |
+| `update_event`      | Patch fields of an event by id.                    |
+| `cancel_event`      | Set `status = 'cancelled'` by id.                  |
+| `add_organizer`     | Add an email to the `organizers` allowlist.        |
+| `list_organizers`   | List the allowlist with who added each email.      |
+| `remove_organizer`  | Remove an email; refuses to remove the last one.   |
+| `list_subscribers`  | Count plus every email on one line, for Gmail Bcc. |
+| `remove_subscriber` | Remove an email from the mailing list.             |
+| `list_rsvps`        | Count plus RSVP emails for one event.              |
+
+### Signups
+
+`POST /subscribe` and `POST /events/:id/rsvp` take JSON `{ "email", "captchaToken" }`.
+They check the email, then the captcha with hCaptcha, then write to D1.
+The contract is shared with the site; see `docs/subscribe.md` in upper-valley-tech-web.
+
+| Reply                                       | When                                                                          |
+| ------------------------------------------- | ----------------------------------------------------------------------------- |
+| `200 {"ok":true}`                           | Stored, including a repeat signup.                                            |
+| `400 {"ok":false,"error":"invalid_email"}`  | Malformed email or body.                                                      |
+| `400 {"ok":false,"error":"captcha_failed"}` | Missing or rejected captcha token.                                            |
+| `404 {"ok":false,"error":"not_found"}`      | RSVP only: the event is unknown, cancelled, or before today in New Hampshire. |
+| `500 {"ok":false,"error":"server"}`         | Anything else, logged with `console.error`.                                   |
+
+Every reply carries the site's CORS headers and `Cache-Control: no-store`.
 
 ## Local development
 
 ```sh
 npm install
+cp .dev.vars.example .dev.vars   # hCaptcha test secret + localhost CORS origin
 npm run db:seed:local   # local D1: migrations + prod seed + dev sample events
 npm run dev             # wrangler dev
 ```
+
+Wrangler ignores `.env` once `.dev.vars` exists, so keep every local dev variable in `.dev.vars`.
 
 `GET /events` works locally against the seeded dev data. The OAuth flow needs real
 Google secrets, so `/authorize` returns 500 and `/mcp` returns 401 without them —
@@ -83,7 +107,10 @@ wrangler d1 execute uvt-events --remote --file=./db/seed.sql
 wrangler secret put GOOGLE_CLIENT_ID
 wrangler secret put GOOGLE_CLIENT_SECRET
 wrangler secret put COOKIE_ENCRYPTION_KEY   # openssl rand -hex 32
+wrangler secret put HCAPTCHA_SECRET         # from the hCaptcha dashboard
 ```
+
+Without `HCAPTCHA_SECRET`, both signup endpoints reply `500 server` and log the cause.
 
 **Google OAuth client** (Web application) at
 [console.cloud.google.com/apis/credentials](https://console.cloud.google.com/apis/credentials):
