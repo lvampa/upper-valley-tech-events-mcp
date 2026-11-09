@@ -82,9 +82,9 @@ npm test              # vitest
 
 ## Branches & deploys
 
-- **`main`** — dev / PR work. Every PR runs lint + format + typecheck + tests (CI).
-- **`production`** — deploys on push. CI runs `./scripts/deploy.sh`: the same
-  checks, then `d1 migrations apply --remote`, then `wrangler deploy`.
+Work happens on branches with PRs into `main`.
+Every PR runs lint, format, typecheck and tests (CI).
+Every push to `main` deploys: CI runs `./scripts/deploy.sh`, which repeats the checks, then runs `d1 migrations apply --remote`, then `wrangler deploy`.
 
 Deploy manually with the identical script:
 

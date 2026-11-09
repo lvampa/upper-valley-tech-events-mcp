@@ -1,10 +1,10 @@
 name: Deploy
 
-# Production deploys happen on merge to `production` (main is dev/PR work only).
+# Every merge to main deploys to production.
 # The job just runs the same ./scripts/deploy.sh you can run locally.
 on:
   push:
-    branches: [production]
+    branches: [main]
 
 permissions:
   contents: read
