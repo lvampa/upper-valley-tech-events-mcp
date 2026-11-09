@@ -11,7 +11,6 @@ export interface NewEvent {
   title: string;
   location: string;
   time: string;
-  rsvpHref?: string;
   meta?: string[];
   agenda?: AgendaItem[];
 }
@@ -22,7 +21,6 @@ export interface EventPatch {
   title?: string;
   location?: string;
   time?: string;
-  rsvpHref?: string | null;
   meta?: string[] | null;
   agenda?: AgendaItem[] | null;
   status?: 'scheduled' | 'cancelled';

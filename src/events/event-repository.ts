@@ -11,7 +11,6 @@ export class EventRepository extends BaseRepository implements EventStore {
       title: row.title,
       location: row.location,
       time: row.time,
-      rsvpHref: row.rsvp_href ?? undefined,
       meta: this.parseJson(row.meta) as string[] | undefined,
       agenda: this.parseJson(row.agenda) as AgendaItem[] | undefined,
     };
@@ -42,8 +41,8 @@ export class EventRepository extends BaseRepository implements EventStore {
   async add(e: NewEvent): Promise<boolean> {
     const result = await this.db
       .prepare(
-        `INSERT INTO events (id, date, title, location, time, rsvp_href, meta, agenda, status)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scheduled')
+        `INSERT INTO events (id, date, title, location, time, meta, agenda, status)
+         VALUES (?, ?, ?, ?, ?, ?, ?, 'scheduled')
          ON CONFLICT(id) DO NOTHING`,
       )
       .bind(
@@ -52,7 +51,6 @@ export class EventRepository extends BaseRepository implements EventStore {
         e.title,
         e.location,
         e.time,
-        e.rsvpHref ?? null,
         e.meta ? JSON.stringify(e.meta) : null,
         e.agenda ? JSON.stringify(e.agenda) : null,
       )
@@ -73,7 +71,6 @@ export class EventRepository extends BaseRepository implements EventStore {
     if (patch.title !== undefined) push('title', patch.title);
     if (patch.location !== undefined) push('location', patch.location);
     if (patch.time !== undefined) push('time', patch.time);
-    if (patch.rsvpHref !== undefined) push('rsvp_href', patch.rsvpHref);
     if (patch.meta !== undefined)
       push('meta', patch.meta === null ? null : JSON.stringify(patch.meta));
     if (patch.agenda !== undefined)
