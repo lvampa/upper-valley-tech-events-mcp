@@ -4,7 +4,7 @@ Cloudflare Worker backing the Upper Valley Tech meetup site.
 
 - `GET /events` — public JSON of scheduled events, edge-cached 5 min.
 - `POST /subscribe` — mailing-list signup from the site, hCaptcha-checked.
-- `POST /events/:id/rsvp` — RSVP to an upcoming event, hCaptcha-checked. The site still links out via `rsvpHref`.
+- `POST /events/:id/rsvp` — RSVP to an upcoming event, hCaptcha-checked. Also adds the email to the mailing list.
 - `/mcp` — remote MCP server (Streamable HTTP), Google OAuth, organizer-only.
 
 ## Architecture
@@ -43,6 +43,7 @@ Writes are layered **MCP tool → service → repository → D1**:
 
 `POST /subscribe` and `POST /events/:id/rsvp` take JSON `{ "email", "captchaToken" }`.
 They check the email, then the captcha with hCaptcha, then write to D1.
+An RSVP writes to both `rsvps` and `subscribers`.
 The contract is shared with the site; see `docs/subscribe.md` in upper-valley-tech-web.
 
 | Reply                                       | When                                                                          |

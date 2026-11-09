@@ -40,8 +40,8 @@ interface SeedEvent {
 }
 export async function seedEvent(env: Env, e: SeedEvent): Promise<void> {
   await env.DB.prepare(
-    `INSERT OR REPLACE INTO events (id, date, title, location, time, rsvp_href, meta, agenda, status)
-     VALUES (?, ?, ?, ?, ?, NULL, ?, ?, ?)`,
+    `INSERT OR REPLACE INTO events (id, date, title, location, time, meta, agenda, status)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       e.id,

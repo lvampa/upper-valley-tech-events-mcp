@@ -16,7 +16,12 @@ describe('row mapping', () => {
     const [rec] = await repo.listPublished();
     expect(rec.meta).toBeUndefined();
     expect(rec.agenda).toBeUndefined();
-    expect(rec.rsvpHref).toBeUndefined();
+  });
+  it('has no rsvpHref, since RSVPs happen on the site', async () => {
+    await seedEvent(env, { id: 'plain', date: '2025-07-16' });
+    const [rec] = await repo.listPublished();
+    expect(rec).not.toHaveProperty('rsvpHref');
+    expect(rec).not.toHaveProperty('rsvp_href');
   });
   it('given JSON columns, parses them into arrays', async () => {
     await seedEvent(env, {
