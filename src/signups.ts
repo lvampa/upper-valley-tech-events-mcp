@@ -53,7 +53,9 @@ function handleRsvp(
       return reply(env, 404, { ok: false, error: 'not_found' });
     }
 
+    // Both writes ignore duplicates, so a retry after a partial failure is safe.
     await new RsvpRepository(env.DB).add(eventId, signup.email);
+    await new SubscriberRepository(env.DB).add(signup.email);
     return reply(env, 200, { ok: true });
   });
 }

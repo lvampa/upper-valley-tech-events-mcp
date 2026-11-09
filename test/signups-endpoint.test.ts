@@ -155,6 +155,17 @@ describe('POST /events/:id/rsvp', () => {
     expect(await rsvpEmails('jan-2999')).toEqual(['ada@example.com']);
   });
 
+  it('given an upcoming event, also adds the email to the mailing list', async () => {
+    // given
+    await seedEvent(env, { id: 'jan-2999', date: upcoming });
+    await post('/subscribe', { email: 'ada@example.com', captchaToken: PASSING_TOKEN });
+    // when
+    await post('/events/jan-2999/rsvp', { email: 'Ada@Example.com', captchaToken: PASSING_TOKEN });
+    await post('/events/jan-2999/rsvp', { email: 'bob@example.com', captchaToken: PASSING_TOKEN });
+    // then
+    expect((await subscriberEmails()).sort()).toEqual(['ada@example.com', 'bob@example.com']);
+  });
+
   it('given a duplicate RSVP, replies ok and keeps one row', async () => {
     await seedEvent(env, { id: 'jan-2999', date: upcoming });
     await post('/events/jan-2999/rsvp', { email: 'ada@example.com', captchaToken: PASSING_TOKEN });
@@ -183,6 +194,7 @@ describe('POST /events/:id/rsvp', () => {
     expect(await res.json()).toEqual({ ok: false, error: 'not_found' });
     expect(res.headers.get('Access-Control-Allow-Origin')).toBe(env.ALLOWED_ORIGIN);
     expect(await rsvpEmails('x')).toEqual([]);
+    expect(await subscriberEmails()).toEqual([]);
   });
 
   it('given a rejected captcha, replies captcha_failed and stores nothing', async () => {
